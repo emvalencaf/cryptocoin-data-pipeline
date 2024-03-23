@@ -5,7 +5,7 @@ T = TypeVar('T')
 
 @dataclass
 class APICoinCapResponse(Generic[T]):
-    data: List[T]
+    data: T
     timestamp: int
     def __init__(self, data: T, timestamp: int):
         self.data = data
