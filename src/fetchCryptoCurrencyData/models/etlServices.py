@@ -3,9 +3,9 @@ from services.load import LoadService
 from services.transform import TransformService
 
 class ETLServicesModel:
-    def __init__(self, extractService: ExtractService, transformService: TransformService, loadService: LoadService):
-        self._extract = extractService
-        self._transform = transformService
+    def __init__(self, loadService: LoadService):
+        self._extract = ExtractService
+        self._transform = TransformService
         self._load = loadService
     
     @property

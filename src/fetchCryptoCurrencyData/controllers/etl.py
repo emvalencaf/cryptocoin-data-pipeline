@@ -1,9 +1,7 @@
 
 # services
 import asyncio
-from services.extract import ExtractService
 from services.load import LoadService
-from services.transform import TransformService
 
 # models
 from models.currencyData import CurrencyDataModel
@@ -14,11 +12,8 @@ from models.responseAPI import APICoinCapResponse
 from models.etlServices import ETLServicesModel
 
 class ETLController:
-    def __init__(self, extractService: ExtractService,
-                 transformService: TransformService, loadService: LoadService):
-        self._services = ETLServicesModel(extractService=extractService,
-                                          transformService=transformService,
-                                          loadService=loadService)
+    def __init__(self, loadService: LoadService):
+        self._services = ETLServicesModel(loadService=loadService)
     
     def execute(self):
         print('Fetching data from the API, please wait a little...')

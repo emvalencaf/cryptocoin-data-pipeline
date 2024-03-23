@@ -2,11 +2,12 @@
 from repositories.cryptocurrencyapi import CryptoCurrencyAPIRepository
 
 class ExtractService:
-    def getRealTimeData(self, asset: str = ""):
+    @classmethod
+    def getRealTimeData(cls, asset: str = ""):
         return CryptoCurrencyAPIRepository.getRealTimeData(asset=asset)
-    
-    def getHistoricalData(self, asset: str = ""):
-        return CryptoCurrencyAPIRepository.getHistoricalData(asset=asset)
-    
+    @classmethod
+    def getHistoricalData(cls, asset: str, interval: str):
+        return CryptoCurrencyAPIRepository.getHistoricalData(asset=asset, interval=interval)
+    @classmethod
     def getCurrencyRates(cls, asset: str = ""):
         return CryptoCurrencyAPIRepository.getCurrencyRates(asset=asset) 

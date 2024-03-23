@@ -14,11 +14,6 @@ class CurrencyDataRateExtractedModel(CurrencyDataRatesModel):
         self.timestamp = timestamp
 
     def to_dict(self):
-        return {
-            "id": self.id,
-            "symbol": self.symbol,
-            "currencySymbol": self.currencySymbol,
-            "type": self.type,
-            "rateUsd": self.rateUsd,
-            "timestamp": self.timestamp
-        }
+        basedict = super().to_dict()
+        basedict['timestamp'] = self.timestamp
+        return basedict

@@ -22,18 +22,6 @@ class CurrencyDataExtractedModel(CurrencyDataModel):
         self.timestamp=timestamp
 
     def to_dict(self):
-        return {
-            "id": self.id,
-            "rank": self.rank,
-            "symbol": self.symbol,
-            "name": self.name,
-            "supply": self.supply,
-            "maxSupply": self.maxSupply,
-            "marketCapUsd": self.marketCapUsd,
-            "volumeUsd24Hr": self.volumeUsd24Hr,
-            "priceUsd": self.priceUsd,
-            "changePercent24Hr": self.changePercent24Hr,
-            "vwap24Hr": self.vwap24Hr,
-            "explorer": self.explorer,
-            "timestamp": self.timestamp
-        }
+        basedict = super().to_dict()
+        basedict['timestamp'] = self.timestamp
+        return basedict
