@@ -1,4 +1,10 @@
 from modules.app import fetchCryptoCurrencyData
 
-if __name__ == "__main__":
+def handler(event, context):
     result = fetchCryptoCurrencyData.execute()
+    return {
+        "statusCode": 200,
+        "body": {
+            "data": result
+        }
+    }

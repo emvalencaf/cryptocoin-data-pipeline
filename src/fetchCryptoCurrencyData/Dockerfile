@@ -1,17 +1,13 @@
-# Use the official Python runtime as the base image
-FROM python:3.11-slim-buster
+FROM public.ecr.aws/lambda/python:3.11
 
-# Set the working directory in the container
-WORKDIR /app
+# To copy into the docker container the list of projects deps
+COPY requirements.txt ${LAMBDA_TASK_ROOT}
 
-# Install any necessary dependencies
-RUN apt-get update && apt-get install -y zip && rm -rf /var/lib/apt/lists/*
+# To install the list of deps into the container
+RUN pip install -r requirements.txt
 
-# Copy only the requirements file to the working directory
-COPY requirements.txt .
+# To copy all the source code needed to execute the lambda function
+COPY . ${LAMBDA_TASK_ROOT}
 
-# Install the Python packages listed in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt -t /opt/python/
-
-# Set the CMD to zip the installed packages into a layer
-CMD cd /opt && zip -r9 /app/fetchCryptoCurrencyData-layer.zip .
+# set the CMD to default execute the lambda function
+CMD [ "main.handler" ]
