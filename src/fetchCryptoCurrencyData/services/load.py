@@ -4,8 +4,6 @@ import json
 from datetime import datetime
 
 # repositories
-from models.currencyDataExtracted import CurrencyDataExtractedModel
-from models.currencyDataRateExtracted import CurrencyDataRateExtractedModel
 from repositories.s3 import S3Repository
 
 # models
@@ -27,7 +25,7 @@ class LoadService:
         # get current date
         current_date = datetime.now()
         
-        filename = f'{filename}.json'
+        filename = f'{current_date.timestamp}-{filename}.json'
         
         keyS3 = f'{self._s3_zone}/JSON/{endpoint.capitalize()}/{current_date.year}/{current_date.month}/{current_date.day}/{filename}'
         
