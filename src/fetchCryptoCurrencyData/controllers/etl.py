@@ -11,6 +11,8 @@ from models.currencyDataRates import CurrencyDataRatesModel
 from models.responseAPI import APICoinCapResponse
 from models.etlServices import ETLServicesModel
 
+import os
+
 class ETLController:
     def __init__(self, loadService: LoadService):
         self._services = ETLServicesModel(loadService=loadService)
@@ -24,9 +26,13 @@ class ETLController:
         dataset = self._transformData(dataset=dataset)
         print('Data was successfully transformed...')
         
-        return self._loadData(dataset=dataset)
-        
-        
+        return {
+            "success_msg": self._loadData(dataset=dataset),
+            "data": {
+                "bucket_name": os.getenv("BUCKET_NAME"),
+                "zone": "Raw",
+                "objects_uploaded": self._services.load.objects_uploaded},
+        }
     
     def _extractData(self):
         return self._services.extract.getRealTimeData(), self._services.extract.getCurrencyRates()

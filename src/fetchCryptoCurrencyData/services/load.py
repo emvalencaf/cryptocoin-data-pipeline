@@ -16,6 +16,14 @@ class LoadService:
         self._s3_zone = os.getenv("S3_ZONE")
         self._bucket_name = os.getenv("BUCKET_NAME")
         self._batch_size = int(os.getenv("BATCH_SIZE", 100))
+        self._objects_uploaded:list[str] = []
+    
+    @property
+    def objects_uploaded(self):
+        return tuple(uploaded for uploaded in self._objects_uploaded)
+    
+    def _add_object_uploaded(self, object_key: str):
+        self._objects_uploaded.append(object_key)
     
     def _uploadJsonObject(self, data: any,
                          endpoint: str,
@@ -27,14 +35,20 @@ class LoadService:
         
         filename = f'{current_date.timestamp}-{filename}.json'
         
-        keyS3 = f'{self._s3_zone}/JSON/{endpoint.capitalize()}/{current_date.year}/{current_date.month}/{current_date.day}/{filename}'
+        date_dir = f'{current_date.year}/{current_date.month}/{current_date.day}'
         
+        keyS3 = f'{self._s3_zone}/JSON/{endpoint.capitalize()}/{date_dir}/{filename}'
+            
         try:
             self._repositories.s3.put_object(Body= json_data,
                                              Bucket=self._bucket_name,
                                              Key=keyS3)
-        except Exception as err:
-            print(f'Error: {err}')
+            # save in load service witches objects were uploaded
+            self._add_object_uploaded(f'{endpoint.capitalize()}/{date_dir}/{filename}')
+            
+        except self._repositories.s3.exceptions.ClientError as err:
+            print(err)
+            raise err
     
     async def _uploadBatch(self, batch: any,
                            filename: str, endpoint: str):
