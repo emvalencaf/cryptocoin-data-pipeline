@@ -31,7 +31,7 @@ class ETLController:
             "data": {
                 "bucket_name": os.getenv("BUCKET_NAME"),
                 "zone": "Raw",
-                "objects_uploaded": self._services.load.objects_uploaded},
+                "objects_uploaded": ','.join(self._services.load.objects_uploaded)},
         }
     
     def _extractData(self):

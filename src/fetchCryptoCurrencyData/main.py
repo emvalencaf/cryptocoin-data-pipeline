@@ -4,8 +4,7 @@ import json
 
 def handler(event, context):
     try:
-        payload = json.dumps(fetchCryptoCurrencyData.execute(),
-                             indent=2)
+        payload = fetchCryptoCurrencyData.execute()
         
         return {
             "statusCode": 200,

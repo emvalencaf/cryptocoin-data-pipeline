@@ -33,9 +33,12 @@ class LoadService:
         # get current date
         current_date = datetime.now()
         
-        filename = f'{current_date.timestamp}-{filename}.json'
+        filename = f'{current_date.timestamp()}-{filename}.json'
         
-        date_dir = f'{current_date.year}/{current_date.month}/{current_date.day}'
+        month = str(current_date.month).zfill(2)
+        day = str(current_date.day).zfill(2)
+        
+        date_dir = f'{current_date.year}/{month}/{day}'
         
         keyS3 = f'{self._s3_zone}/JSON/{endpoint.capitalize()}/{date_dir}/{filename}'
             
