@@ -32,45 +32,40 @@ class CdkDataPipelineStack(Stack):
         self._build()
     
     
-    def _build(self):
-        # create bucket to store data ingest and processed
-        bucket = CdkS3BucketResource(self,
-                                     id_resource=f'CDK-{os.getenv("BUCKET_NAME")}',
-                                     bucket_name=os.getenv("BUCKET_NAME"),
-                                     auto_delete_objects=True,
-                                     removal_policy=True)
-        
+    def _setup_statements_policies(self,
+                                   bucket_name: str):
+
         # set iam policy to put object into a specific bucket
         s3_put_policy = self._setPolicyStatement(actions=["s3:PutObject"],
-                                                 resources=[f"arn:aws:s3:::{bucket._bucket.bucket_name}/*"],
+                                                 resources=[f"arn:aws:s3:::{bucket_name}/*"],
                                                  effect_is_allowed=True)
         
         # set iam policy to get object to a specific bucket
         s3_get_policy = self._setPolicyStatement(actions=["s3:GetObject"],
-                                                 resources=[f"arn:aws:s3:::{bucket._bucket.bucket_name}/*"],
+                                                 resources=[f"arn:aws:s3:::{bucket_name}/*"],
                                                  effect_is_allowed=True)
 
         # set iam policy to put object into a specific bucket
         s3_put_processing_data_policy = self._setPolicyStatement(actions=["s3:PutObject"],
-                                                                 resources=[f"arn:aws:s3:::{bucket._bucket.bucket_name}/Trusted/*"],
+                                                                 resources=[f"arn:aws:s3:::{bucket_name}/Trusted/*"],
                                                                  effect_is_allowed=True)
         
         # set iam policy to get object to a specific bucket and zone
         s3_get_processing_data_policy = self._setPolicyStatement(actions=["s3:GetObject"],
-                                                                 resources=[f"arn:aws:s3:::{bucket._bucket.bucket_name}/Raw/*",
-                                                                            f"arn:aws:s3:::{bucket._bucket.bucket_name}/Code/Glue_Job/ProcessingData/*"],
+                                                                 resources=[f"arn:aws:s3:::{bucket_name}/Raw/*",
+                                                                            f"arn:aws:s3:::{bucket_name}/Code/Glue_Job/ProcessingData/*"],
                                                                  effect_is_allowed=True)
         
         # set iam policy to put object into a specific bucket and zone
         s3_put_refining_data_policy = self._setPolicyStatement(actions=["s3:PutObject"],
-                                                               resources=[f"arn:aws:s3:::{bucket._bucket.bucket_name}/Refined/*"],
+                                                               resources=[f"arn:aws:s3:::{bucket_name}/Refined/*"],
                                                                effect_is_allowed=True)
         
         # set iam policy to get object to a specific bucket and zone
         s3_get_refining_data_policy = self._setPolicyStatement(actions=["s3:GetObject"],
-                                                               resources=[f"arn:aws:s3:::{bucket._bucket.bucket_name}/Trusted/*",
-                                                                          f"arn:aws:s3:::{bucket._bucket.bucket_name}/Refined/*",
-                                                                          f"arn:aws:s3:::{bucket._bucket.bucket_name}/Code/Glue_Job/RefiningData/*"],
+                                                               resources=[f"arn:aws:s3:::{bucket_name}/Trusted/*",
+                                                                          f"arn:aws:s3:::{bucket_name}/Refined/*",
+                                                                          f"arn:aws:s3:::{bucket_name}/Code/Glue_Job/RefiningData/*"],
                                                                effect_is_allowed=True)
         # set iam policy to database
         aws_glue_database_policy = self._setPolicyStatement(actions=["glue:CreateDatabase",
@@ -91,21 +86,6 @@ class CdkDataPipelineStack(Stack):
                                                                      ],
                                                             resources=["*"],
                                                             effect_is_allowed=True)
-        
-        # set iam role to database
-        role_aws_glue_database = self._setIAMRole(role_id="Database-CryptoCurrency-Glue",
-                                                  role_description="A Role for manager Database in AWS Glue",
-                                                  role_service_principal="glue.amazonaws.com",
-                                                  role_managed_policies="service-role/AWSGlueServiceRole",
-                                                  role_policy_statements=[aws_glue_database_policy])
-        
-        # create database
-        database = CdkAWSGlueDatabaseResource(cdk=self,
-                                              database_id=os.getenv("AWS_GLUE_DATABASE_ID"),
-                                              database_name=os.getenv("AWS_GLUE_DATABASE_NAME"),
-                                              database_description=os.getenv("AWS_GLUE_DATABASE_DESCRIPTION"),
-                                              aws_glue_role=role_aws_glue_database)
-        
         # set iam policy to manage database
         aws_crawler_database_policy = self._setPolicyStatement(actions=["glue:CreateDatabase",
                                                                         "glue:GetTables",
@@ -117,7 +97,7 @@ class CdkDataPipelineStack(Stack):
                                                                effect_is_allowed=True)
         
         aws_crawler_s3_read_policy = self._setPolicyStatement(actions=["s3:getObject"],
-                                                              resources=[f"arn:aws:s3:::{bucket._bucket.bucket_name}/Refined/*"],
+                                                              resources=[f"arn:aws:s3:::{bucket_name}/Refined/*"],
                                                               effect_is_allowed=True)
         
         aws_crawler_s3_put_policy = self._setPolicyStatement(actions=["s3:putObject"],
@@ -127,53 +107,90 @@ class CdkDataPipelineStack(Stack):
         aws_crawler_s3_list_bucket_policy = self._setPolicyStatement(actions=["s3:ListBucket"],
                                                                      resources=["*"],
                                                                      effect_is_allowed=True)
+        return {
+            "s3_put_policy": s3_put_policy,
+            "s3_get_policy": s3_get_policy,
+            "s3_put_processing_data_policy": s3_put_processing_data_policy,
+            "s3_get_processing_data_policy": s3_get_processing_data_policy,
+            "s3_put_refining_data_policy": s3_put_refining_data_policy,
+            "s3_get_refining_data_policy": s3_get_refining_data_policy,
+            "aws_glue_database_policy": aws_glue_database_policy,
+            "aws_crawler_database_policy": aws_crawler_database_policy,
+            "aws_crawler_s3_read_policy": aws_crawler_s3_read_policy,
+            "aws_crawler_s3_put_policy": aws_crawler_s3_put_policy,
+            "aws_crawler_s3_list_bucket_policy": aws_crawler_s3_list_bucket_policy,
+        }
+    
+    def _setup_iam_roles(self,
+                         bucket_name: str) -> dict[str,iam.Role]:
+        # get all policies
+        policy_statements = self._setup_statements_policies(bucket_name=bucket_name)
         
         # set iam role to fetchCryptoCurrency lambda function
         role_fetchCryptoCurrencyData = self._setIAMRole(role_id="CdkFetchCryptoCurrency-Lambda",
-                                                        role_description=f"Role for Fetch Crypto Currency lambda function to fetch crypto currency data from an API and stores into /Raw zone within {bucket.bucket.bucket_name}",
+                                                        role_description=f"Role for Fetch Crypto Currency lambda function to fetch crypto currency data from an API and stores into /Raw zone within {bucket_name}",
                                                         role_service_principal="lambda.amazonaws.com",
                                                         role_managed_policies="service-role/AWSLambdaBasicExecutionRole",
-                                                        role_policy_statements=[s3_put_policy])
+                                                        role_policy_statements=[policy_statements["s3_put_policy"]])
         
         # set iam role to glue jobs
         role_glue_processing = self._setIAMRole(role_id="CdkJobProcessingData-Glue",
-                                                role_description=f"A Role for AWS Glue job Processing Crypto Currency Data that will threat the stored data in /Raw zone within {bucket.bucket.bucket_name} and stored the threated data into /Trusted zone",
+                                                role_description=f"A Role for AWS Glue job Processing Crypto Currency Data that will threat the stored data in /Raw zone within {bucket_name} and stored the threated data into /Trusted zone",
                                                 role_service_principal="glue.amazonaws.com",
                                                 role_managed_policies="service-role/AWSGlueServiceRole",
-                                                role_policy_statements=[s3_get_processing_data_policy,
-                                                                        s3_put_processing_data_policy])
+                                                role_policy_statements=[policy_statements["s3_get_processing_data_policy"],
+                                                                        policy_statements["s3_put_processing_data_policy"]])
         
         role_glue_refining = self._setIAMRole(role_id="CdkJobRefiningData-Glue",
-                                              role_description=f"A Role for AWS Glue job Refining Crypto Currency Data stored at /Trusted zone within {bucket.bucket.bucket_name} and stored the refined data into /Refined zone",
+                                              role_description=f"A Role for AWS Glue job Refining Crypto Currency Data stored at /Trusted zone within {bucket_name} and stored the refined data into /Refined zone",
                                               role_service_principal="glue.amazonaws.com",
                                               role_managed_policies="service-role/AWSGlueServiceRole",
-                                              role_policy_statements=[s3_get_refining_data_policy,
-                                                                      s3_put_refining_data_policy])
+                                              role_policy_statements=[policy_statements["s3_get_refining_data_policy"],
+                                                                      policy_statements["s3_put_refining_data_policy"]])
         
         # set iam role to GlueingCryptoCurrency crawler
         role_glueingCryptoCurrencyDataCrawler = self._setIAMRole(role_id="CdkCrawlerData-Glue",
-                                                                 role_description=f"A Role for AWS Glue Crawler create and populate database tables by scraping /Refined zone within {bucket.bucket.bucket_name}",
+                                                                 role_description=f"A Role for AWS Glue Crawler create and populate database tables by scraping /Refined zone within {bucket_name}",
                                                                  role_service_principal="glue.amazonaws.com",
                                                                  role_managed_policies="service-role/AWSGlueServiceRole",
-                                                                 role_policy_statements=[aws_crawler_database_policy,
-                                                                                         aws_crawler_s3_list_bucket_policy,
-                                                                                         aws_crawler_s3_read_policy,
-                                                                                         aws_crawler_s3_put_policy,])
+                                                                 role_policy_statements=[policy_statements["aws_crawler_database_policy"],
+                                                                                         policy_statements["aws_crawler_s3_list_bucket_policy"],
+                                                                                         policy_statements["aws_crawler_s3_read_policy"],
+                                                                                         policy_statements["aws_crawler_s3_put_policy"],])
         
         # set iam role to GlueingCryptoCurrency Step functions
         role_glueingCryptoCurrencyDataSfn = self._setIAMRole(role_id="CdkStepFunctions-Sfn",
                                                              role_description="A Role for AWS Step Function automate the data pipeline of crypto currency data by orchestrate AWS Lambda Function, AWS Glue Job and AWS Glue Crawler",
                                                              role_service_principal="states.amazonaws.com",
                                                              role_managed_policies="service-role/AWSLambdaBasicExecutionRole",
-                                                             role_policy_statements=[s3_put_policy,
-                                                                                      s3_get_policy])
-        
+                                                             role_policy_statements=[policy_statements["s3_put_policy"],
+                                                                                     policy_statements["s3_get_policy"]])
+        # set iam role to Glue Database
+        role_aws_glue_database = self._setIAMRole(role_id="Database-CryptoCurrency-Glue",
+                                                  role_description="A Role for manager Database in AWS Glue",
+                                                  role_service_principal="glue.amazonaws.com",
+                                                  role_managed_policies="service-role/AWSGlueServiceRole",
+                                                  role_policy_statements=[policy_statements["aws_glue_database_policy"]])
+
+        return {
+            "role_fetchCryptoCurrencyData": role_fetchCryptoCurrencyData,
+            "role_glue_processing": role_glue_processing,
+            "role_glue_refining": role_glue_refining,
+            "role_glueingCryptoCurrencyDataCrawler": role_glueingCryptoCurrencyDataCrawler,
+            "role_glueingCryptoCurrencyDataSfn": role_glueingCryptoCurrencyDataSfn,
+            "role_aws_glue_database": role_aws_glue_database,
+        }
+    
+    def _setup_lambda_fn(self,
+                         bucket_name: str,
+                         role_fetchCryptoCurrencyData: iam.Role):
+
         # set aws lambda envs
         fetchCryptoCurrencyData_envs = {
             "API_URL": os.getenv("API_URL"),
             "BATCH_SIZE": os.getenv("BATCH_SIZE"),
             "S3_ZONE": os.getenv("S3_ZONE"),
-            "BUCKET_NAME": bucket._bucket.bucket_name}
+            "BUCKET_NAME": bucket_name}
         
         
         # config lambdas
@@ -189,34 +206,25 @@ class CdkDataPipelineStack(Stack):
         
         aws_lambda_fetch = CdkAWSLambdaResource(cdk=self, **aws_lambda_config)
         
-        ibucket = bucket._bucket.from_bucket_arn(self,
-                                                 id=bucket.artifact_id,
-                                                 bucket_arn=bucket.bucket.bucket_arn)
-        
-        # deploy aws job code into s3
-        s3_deploy.BucketDeployment(self, "DeployJob_TreatingData_Code",
-                                   destination_bucket=ibucket,
-                                   destination_key_prefix="Code/Glue_Job/ProcessingData",
-                                   sources=[s3_deploy.Source.asset('../glueingCryptoCurrencyData/glueJobs/processingCryptoCurrencyData')],
-                                   )
-        
-        s3_deploy.BucketDeployment(self, "DeployJob_RefiningData_Code",
-                                   destination_bucket=ibucket,
-                                   destination_key_prefix="Code/Glue_Job/RefiningData",
-                                   sources=[s3_deploy.Source.asset('../glueingCryptoCurrencyData/glueJobs/refiningCryptoCurrencyData')],
-                                   )
-        
+        return {
+            "aws_lambda_fetch": aws_lambda_fetch,
+        }
+    
+    def _setup_aws_glue_jobs(self,
+                             role_glue_processing: iam.Role,
+                             role_glue_refining: iam.Role,
+                             bucket_name: str):
         # config glue job
         glue_treating_commands = glue.CfnJob.JobCommandProperty(name="glueetl",
                                                                 python_version=os.getenv("AWS_GLUE_PYTHON_VERSION"),
-                                                                script_location=f"s3://{bucket._bucket.bucket_name}/Code/Glue_Job/ProcessingData/main.py")
+                                                                script_location=f"s3://{bucket_name}/Code/Glue_Job/ProcessingData/main.py")
         
         glue_refining_commands = glue.CfnJob.JobCommandProperty(name="glueetl",
                                                                 python_version=os.getenv("AWS_GLUE_PYTHON_VERSION"),
-                                                                script_location=f"s3://{bucket._bucket.bucket_name}/Code/Glue_Job/RefiningData/main.py")
+                                                                script_location=f"s3://{bucket_name}/Code/Glue_Job/RefiningData/main.py")
         
         glue_refining_args = {
-            "--S3_BUCKET_NAME": bucket.bucket.bucket_name,
+            "--S3_BUCKET_NAME": bucket_name,
             "--S3_INPUT_ZONE": "Trusted",
             "--S3_TARGET_ZONE": "Refined",
             "--S3_ZONE_ENDPOINTS_DIR": "Assets,Rates",
@@ -224,7 +232,7 @@ class CdkDataPipelineStack(Stack):
         }
         
         glue_treating_args = {
-            "--S3_BUCKET_NAME": bucket.bucket.bucket_name,
+            "--S3_BUCKET_NAME": bucket_name,
             "--S3_INPUT_ZONE": "Raw",
             "--S3_TARGET_ZONE": "Trusted",
             "--S3_ZONE_ENDPOINTS_DIR": "Assets,Rates",
@@ -253,6 +261,16 @@ class CdkDataPipelineStack(Stack):
         aws_glue_job_processing = CdkAWSGlueJobResource(cdk=self, **aws_glue_job_configs[0])
         aws_glue_job_refining = CdkAWSGlueJobResource(cdk=self, **aws_glue_job_configs[1])
         
+        return {
+            "aws_glue_job_processing": aws_glue_job_processing,
+            "aws_glue_job_refining": aws_glue_job_refining,
+        }
+    
+    def _setup_sfn_policy_statements(self,
+                                     processing_job_name: str,
+                                     refining_job_name: str,
+                                     function_arn: str,
+                                     role_glueingCryptoCurrencyDataSfn: iam.Role,):
         # set iam policy to assume role for step functions and also glueCryptoCurrencyData aws lambda
         sts_policy = self._setPolicyStatement(actions=["sts:AssumeRole"],
                                               resources=[role_glueingCryptoCurrencyDataSfn.role_arn,],
@@ -265,40 +283,100 @@ class CdkDataPipelineStack(Stack):
         partial_arn_glue = f"arn:aws:glue:{AWS_REGION}:{AWS_ACCOUNT}:job/"
 
         glue_job_start_policy = self._setPolicyStatement(actions=["glue:StartJobRun"],
-                                                         resources=[f'{partial_arn_glue}{aws_glue_job_processing.job.name}',
-                                                                    f'{partial_arn_glue}{aws_glue_job_refining.job.name}'],
+                                                         resources=[f'{partial_arn_glue}{processing_job_name}',
+                                                                    f'{partial_arn_glue}{refining_job_name}'],
                                                          effect_is_allowed=True)
         
         lambda_invoke_policy = self._setPolicyStatement(actions=["lambda:InvokeFunction"],
-                                                        resources=[aws_lambda_fetch.function_arn],
+                                                        resources=[function_arn],
                                                         effect_is_allowed=True)
         
         # add invoke lambda policy to step functions
         role_glueingCryptoCurrencyDataSfn.add_to_policy(statement=sts_policy)
         role_glueingCryptoCurrencyDataSfn.add_to_policy(statement=lambda_invoke_policy)
         role_glueingCryptoCurrencyDataSfn.add_to_policy(statement=glue_job_start_policy)
-
+    
+    def _setup_glue_workflow(self,
+                             role_aws_glue_database: iam.Role,
+                             role_glueingCryptoCurrencyDataCrawler: iam.Role,
+                             bucket_name: str):
+        # create database
+        database = CdkAWSGlueDatabaseResource(cdk=self,
+                                              database_id=os.getenv("AWS_GLUE_DATABASE_ID"),
+                                              database_name=os.getenv("AWS_GLUE_DATABASE_NAME"),
+                                              database_description=os.getenv("AWS_GLUE_DATABASE_DESCRIPTION"),
+                                              aws_glue_role=role_aws_glue_database)        
         # create crawler
         aws_glue_crawler = CdkAWSGlueCrawlerResource(self,
                                                      aws_crawler_id="Crawler-CryptoCurrency",
                                                      aws_crawler_name="Crawler-CryptoCurrency",
                                                      aws_crawler_description=f"A crawler the data stored at /Refined zone to populate {database.database_name}",
-                                                     aws_glue_role=role_glueingCryptoCurrencyDataCrawler,#role_glue_workflow,
+                                                     aws_glue_role=role_glueingCryptoCurrencyDataCrawler,
                                                      database_name=database.database_name,
                                                      aws_glue_target={
-                                                         "s3_path":f"s3://{bucket.bucket.bucket_name}/Refined",
+                                                         "s3_path":f"s3://{bucket_name}/Refined",
                                                      })
-        
+        """
         database.createPermission(id_permission=f"{aws_glue_crawler._id}-permission",
                                   role_arn=role_glueingCryptoCurrencyDataCrawler.role_arn,
                                   permissions=["ALL"])
+        """
+        return {
+            "aws_glue_crawler": aws_glue_crawler,
+        }
+    
+    def _build(self):
+        # create bucket to store data ingest and processed
+        bucket = CdkS3BucketResource(self,
+                                     id_resource=f'CDK-{os.getenv("BUCKET_NAME")}',
+                                     bucket_name=os.getenv("BUCKET_NAME"),
+                                     auto_delete_objects=True,
+                                     removal_policy=True)
+        # setup iam roles
+        roles = self._setup_iam_roles(bucket_name=bucket.bucket.bucket_name)
         
+        # setup aws lambda functions
+        aws_lambda_fns = self._setup_lambda_fn(bucket_name=bucket.bucket.bucket_name,
+                                               role_fetchCryptoCurrencyData=roles["role_fetchCryptoCurrencyData"])
+        
+        ibucket = bucket._bucket.from_bucket_arn(self,
+                                                 id=bucket.artifact_id,
+                                                 bucket_arn=bucket.bucket.bucket_arn)
+        
+        # deploy aws job code into s3
+        s3_deploy.BucketDeployment(self, "DeployJob_TreatingData_Code",
+                                   destination_bucket=ibucket,
+                                   destination_key_prefix="Code/Glue_Job/ProcessingData",
+                                   sources=[s3_deploy.Source.asset('../glueingCryptoCurrencyData/glueJobs/processingCryptoCurrencyData')],
+                                   )
+        
+        s3_deploy.BucketDeployment(self, "DeployJob_RefiningData_Code",
+                                   destination_bucket=ibucket,
+                                   destination_key_prefix="Code/Glue_Job/RefiningData",
+                                   sources=[s3_deploy.Source.asset('../glueingCryptoCurrencyData/glueJobs/refiningCryptoCurrencyData')],
+                                   )
+        
+        # setup aws glue jobs
+        aws_glue_jobs = self._setup_aws_glue_jobs(role_glue_processing=roles["role_glue_processing"],
+                                                  role_glue_refining=roles["role_glue_refining"],
+                                                  bucket_name=bucket.bucket.bucket_name)
+        
+        # setup step functions policies statements within stfn role
+        self._setup_sfn_policy_statements(processing_job_name=aws_glue_jobs["aws_glue_job_processing"].job.name,
+                                          refining_job_name=aws_glue_jobs["aws_glue_job_refining"].job.name,
+                                          function_arn=aws_lambda_fns["aws_lambda_fetch"].function_arn,
+                                          role_glueingCryptoCurrencyDataSfn=roles["role_glueingCryptoCurrencyDataSfn"])
+        
+        # setup glue crawler and glue data catalog
+        aws_glue_workflow = self._setup_glue_workflow(role_aws_glue_database=roles["role_aws_glue_database"],
+                                                      role_glueingCryptoCurrencyDataCrawler=roles["role_glueingCryptoCurrencyDataCrawler"],
+                                                      bucket_name=bucket.bucket.bucket_name,)
         # create step functions
-        self._buildMachineState(aws_lambda_fetch=aws_lambda_fetch,
-                                aws_glue_job_processing=aws_glue_job_processing,
-                                aws_glue_job_refining=aws_glue_job_refining,
-                                aws_glue_crawler=aws_glue_crawler,
-                                role=role_glueingCryptoCurrencyDataSfn)
+        self._buildMachineState(aws_lambda_fetch=aws_lambda_fns["aws_lambda_fetch"],
+                                aws_glue_job_processing=aws_glue_jobs["aws_glue_job_processing"],
+                                aws_glue_job_refining=aws_glue_jobs["aws_glue_job_refining"],
+                                aws_glue_crawler=aws_glue_workflow["aws_glue_crawler"],
+                                role=roles["role_glueingCryptoCurrencyDataSfn"])
         
     def _setIAMRole(self,
                     role_id: str,
