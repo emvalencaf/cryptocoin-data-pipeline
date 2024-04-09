@@ -1,58 +1,99 @@
+# Glueing Crypto Currency Data
 
-# Welcome to your CDK Python project!
+## Summary
 
-This is a blank project for CDK development with Python.
+- [Documentation (Brazilian Portuguese)](/README.md#documentação)
+    - [Sumário da Documentação](/README.md#sumário-da-documentação)
+    - [Sobre o Projeto](/README.md#sobre-o-projeto)
+    - [A Arquitetura do Projeto](/README.md#a-arquitetura-do-projeto)
+    - [Como Usar](/README.md#como-usar)
+    - [Fontes](/README.md#fontes)
+- [Documentation (USA English)](/README.md#documentation)
+    - [Documentation Summary](/README.md#documentation-summary)
+    - [About the Project](/README.md#about-the-project)
+    - [Project Architecture](/README.md#project-architecture)
+    - [How to use](/README.md#how-to-use)
+    - [Sources](/README.md#sources)
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Documentation
 
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
+### Documentation Summary
 
-To manually create a virtualenv on MacOS and Linux:
+- [Source Code: Fetch Crypto Currency Data](/src/fetchCryptoCurrencyData/README.md)
+    - [About the Source Code](/src/fetchCryptoCurrencyData/README.md#about-the-source-code)
+    - [About the Source Code Architecture](/src//fetchCryptoCurrencyData/README.md#about-the-source-code-architecture)
+        - [AWS Lambda Function and AWS Infrastructure](/src/fetchCryptoCurrencyData/README.md#aws-lambda-function-and-aws-infrastructure)
+        - [AWS IAM Policy](/src/fetchCryptoCurrencyData/README.md#aws-iam-policy)
+        - [Environment Variables](/src/fetchCryptoCurrencyData/README.md#environment-variables)
+        - [Code Operation](/src/fetchCryptoCurrencyData/README.md#code-operation)
+- [Source Code: Glueing Crypto Currency Data](/src/glueingCryptoCurrencyData/README.md)
+    - [About the Source Code](/src/glueingCryptoCurrencyData/README.md#about-the-source-code)
+    - [About the Source Code Architecture](/src//glueingCryptoCurrencyData/README.md#about-the-source-code-architecture)
+        - [AWS Glue Jobs and AWS Infrastructure](/src/glueingCryptoCurrencyData/README.md#aws-lambda-function-and-aws-infrastructure)
+        - [AWS IAM Policy](/src/glueingCryptoCurrencyData/README.md#aws-iam-policy)
+        - [Code Operation](/src/glueingCryptoCurrencyData/README.md#code-operation)
+            - [Processing CryptoCurrency Data](/src/glueingCryptoCurrencyData/README.md#processing-cryptocurrency-data)
+            - [Refining CryptoCurrency Data](/src/glueingCryptoCurrencyData/README.md#refining-cryptocurrency-data)
+- [Source Code: Handle AWS Infrastructure](/src/handleAWSInfrastructure/README.md)
+    - [About the Source Code](/src/fetchCryptoCurrencyData/README.md#about-the-source-code)
+    - [About the Source Code Architecture](/src//fetchCryptoCurrencyData/README.md#about-the-source-code-architecture)
 
-```
-$ python -m venv .venv
-```
+### About the Source Code
 
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
+The `Handle AWS Infrastructure` component is responsible for configuring and implementing AWS resources for the `Cryptocoin Data Pipeline` project.
 
-```
-$ source .venv/bin/activate
-```
+The `CryptoCoin Data Pipeline` project performs an automated process of extraction, loading, and transformation (ELT - *Extract Load and Transform*) of data from the [CoinCap v. 2](https://docs.coincap.io/) API.
 
-If you are a Windows platform, you would activate the virtualenv like this:
+The main objective of the project is to provide learning experience in using AWS services for data engineering projects. This data can be used to create a dashboard or assist a tradebot operating with cryptocurrency assets.
 
-```
-% .venv\Scripts\activate.bat
-```
+### About the Source Code Architecture
 
-Once the virtualenv is activated, you can install the required dependencies.
+The `Handle AWS Infrastructure` component is divided into 3 types of classes:
 
-```
-$ pip install -r requirements.txt
-```
+1. Stacks: The `Stack` class is a collection of AWS resources and operates the business rules for the `Cryptocoin Data Pipeline` application.
+2. Resources: The `Resource` class implements and models AWS resources.
+3. Events: The `Event` class implements and models AWS Eventbridge event rules.
 
-At this point you can now synthesize the CloudFormation template for this code.
+![Class Diagram: Handle AWS Infrastructure](/docs/handleAWSInfrastructure/ClassDiagram!handleAWSArchitucture.jpg)
 
-```
-$ cdk synth
-```
 
-To add additional dependencies, for example other CDK libraries, just add
-them to your `setup.py` file and rerun the `pip install -r requirements.txt`
-command.
+## Documentação
 
-## Useful commands
+### Sumário da Documentação
 
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
+- [Código Fonte: Fetch Crypto Currency Data](/src/fetchCryptoCurrencyData/README.md)
+    - [Sobre o Código Fonte](/src/fetchCryptoCurrencyData/README.md#sobre-o-código-fonte)
+    - [Sobre a Arquitetura do Código Fonte](/src//fetchCryptoCurrencyData/README.md#sobre-a-arquitetura-do-código-fonte)
+        - [Função do AWS Lambda e a Infraestrutura da AWS](/src/fetchCryptoCurrencyData/README.md#função-do-aws-lambda-e-a-infraestrutura-da-aws)
+        - [AWS IAM Policy](/src/fetchCryptoCurrencyData/README.md#aws-iam-policy)
+        - [As variáveis de ambiente](/src/fetchCryptoCurrencyData/README.md#as-variáveis-de-ambiente)
+        - [Operação do código](/src/fetchCryptoCurrencyData/README.md#operação-do-código)
+- [Código Fonte: Glueing Crypto Currency Data](/src/glueingCryptoCurrencyData/README.md)
+    - [Sobre o Código Fonte](/src/glueingCryptoCurrencyData/README.md#sobre-o-código-fonte)
+    - [Sobre a Arquitetura do Código Fonte](/src//glueingCryptoCurrencyData/README.md#sobre-a-arquitetura-do-código-fonte)
+        - [AWS Glue Jobs e Infraestrutura AWS](/src/glueingCryptoCurrencyData/README.md#aws-glue-jobs-e-infraestrutura-aws)
+        - [AWS IAM Policy](/src/glueingCryptoCurrencyData/README.md#aws-iam-policy-1)
+        - [Operação de Código](/src/glueingCryptoCurrencyData/README.md#operação-de-código)
+            - [Processing CryptoCurrency Data](/src/glueingCryptoCurrencyData/README.md#processing-cryptocurrency-data-1)
+            - [Refining CryptoCurrency Data](/src/glueingCryptoCurrencyData/README.md#refining-cryptocurrency-data-1)
+- [Código Fonte: Handle AWS Infrastructure](/src/handleAWSInfrastructure/README.md)
+    - [Sobre o Código Fonte](/src/fetchCryptoCurrencyData/README.md#sobre-o-código-fonte)
+    - [Sobre a Arquitetura do Código Fonte](/src//fetchCryptoCurrencyData/README.md#sobre-a-arquitetura-do-código-fonte)
 
-Enjoy!
+### Sobre o Código Fonte
+
+O componente `Handle AWS Infrastructure` é responsável por configurar e implementar os recursos da AWS para o projeto `Cryptocoin Data Pipeline`.
+
+O projeto `CryptoCoin Data Pipeline` realiza um processo automatizado de extração, carregamento e transformação (ELT - *Extract Load and Transform*) de dados provenientes da API [CoinCap v. 2](https://docs.coincap.io/).
+
+O objetivo principal do projeto é proporcionar aprendizado no uso dos serviços da AWS para projetos de engenharia de dados. Esses dados podem ser utilizados para criar um *dashboard* ou auxiliar um *tradebot* que opera com ativos de criptomoedas.
+
+### Sobre a Arquitetura do Código Fonte
+
+O componente `Handle AWS Infrastructure` é dividido em 3 tipos de classes:
+
+1. Stacks: a classe `Stack` são uma coleção de recursos da AWS e que opera as regras de negócios para o aplicativo `Cryptocoin Data Pipeline`
+2. Resources: a classe `Resource` faz a implementação e a modelagem dos recursos da AWS
+3. Events: a classe `Event` implementa e modela regras de evento do AWS Eventbridge.
+
+![Diagrama de Classes: Handle AWS Infrastructure](/docs/handleAWSInfrastructure/ClassDiagram!handleAWSArchitucture.jpg)
